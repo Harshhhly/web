@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Vision - Premier Car Showcase</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Three.js Add-on Loaders -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+
+    <style>
+        /* CSS Variables for Theming */
+        :root {
+            --bg-primary: #f8fafc; /* cool-gray-50 */
+            --bg-secondary: #ffffff; /* white */
+            --bg-muted: #f1f5f9; /* cool-gray-100 */
+            --text-primary: #1f2937; /* cool-gray-800 */
+            --text-secondary: #4b5563; /* cool-gray-600 */
+            --text-muted: #6b7280; /* cool-gray-500 */
+            --border-color: #e5e7eb; /* cool-gray-200 */
+            --shadow-color: rgb(0 0 0 / 0.1);
+        }
+
+        html[data-theme='dark'] {
+            --bg-primary: #111827; /* gray-900 */
+            --bg-secondary: #1f2937; /* gray-800 */
+            --bg-muted: #374151; /* gray-700 */
+            --text-primary: #f9fafb; /* gray-50 */
+            --text-secondary: #d1d5db; /* gray-300 */
+            --text-muted: #9ca3af; /* gray-400 */
+            --border-color: #4b5563; /* gray-600 */
+            --shadow-color: rgb(255 255 255 / 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 50%;
+            background-color: #4f46e5; /* Indigo 600 */
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        /* Themed component styles */
+        .themed-bg-secondary { background-color: var(--bg-secondary); }
+        .themed-bg-muted { background-color: var(--bg-muted); }
+        .themed-text-primary { color: var(--text-primary); }
+        .themed-text-secondary { color: var(--text-secondary); }
+        .themed-text-muted { color: var(--text-muted); }
+        .themed-border { border-color: var(--border-color); }
+        .themed-shadow { box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -2px var(--shadow-color); }
+
+        /* 3D Modal styling */
+        .modal-backdrop {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal-content {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+
+        .modal-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .modal-hidden .modal-content {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+        
+        /* Card hover effect */
+        .car-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .car-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px var(--shadow-color), 0 8px 10px -6px var(--shadow-color);
+        }
+
+        /* Typing cursor effect */
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        .cursor-blink {
+            animation: blink 0.75s step-end infinite;
+        }
+        
+        /* Loader Spinner */
+        .loader {
+            border: 4px solid #f3f3f340;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="themed-bg-secondary/80 backdrop-blur-lg themed-shadow sticky top-0 z-40">
+        <nav class="container mx-auto px-4 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="#" class="flex items-center">
+                    <img src="https://i.ibb.co/6wcfZ6R/autovision-logo.jpg" alt="Auto Vision Logo" class="h-16 mr-2">
+                </a>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#home" class="nav-link themed-text-secondary hover:text-indigo-600 font-medium">Home</a>
+                    <div class="relative group">
+                        <button class="nav-link themed-text-secondary hover:text-indigo-600 font-medium flex items-center">
+                            <span>Categories</span>
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="absolute hidden group-hover:block themed-bg-secondary themed-shadow rounded-md mt-2 py-2 w-48 z-50">
+                            <a href="#" onclick="filterCars('all')" class="block px-4 py-2 themed-text-secondary hover:bg-indigo-500 hover:text-white">All</a>
+                            <a href="#" onclick="filterCars('supercar')" class="block px-4 py-2 themed-text-secondary hover:bg-indigo-500 hover:text-white">Supercars</a>
+                            <a href="#" onclick="filterCars('suv')" class="block px-4 py-2 themed-text-secondary hover:bg-indigo-500 hover:text-white">SUVs</a>
+                            <a href="#" onclick="filterCars('ev')" class="block px-4 py-2 themed-text-secondary hover:bg-indigo-500 hover:text-white">EVs</a>
+                        </div>
+                    </div>
+                    <a href="#contact" class="nav-link themed-text-secondary hover:text-indigo-600 font-medium">Contact</a>
+                    <button id="theme-toggle" class="p-2 rounded-full themed-text-secondary hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <svg id="theme-icon-light" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg id="theme-icon-dark" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                </div>
+                <div class="md:hidden flex items-center gap-2">
+                    <button id="theme-toggle-mobile" class="p-2 rounded-full themed-text-secondary hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <svg id="theme-icon-light-mobile" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg id="theme-icon-dark-mobile" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                    <button id="mobile-menu-button" class="themed-text-secondary hover:text-indigo-600 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden pb-4">
+                <a href="#home" class="block py-2 px-4 text-sm themed-text-secondary hover:bg-indigo-500 hover:text-white rounded-md">Home</a>
+                <a href="#" onclick="filterCars('all')" class="block py-2 px-4 text-sm themed-text-secondary hover:bg-indigo-500 hover:text-white rounded-md">All Cars</a>
+                <a href="#" onclick="filterCars('supercar')" class="block py-2 px-4 text-sm themed-text-secondary hover:bg-indigo-500 hover:text-white rounded-md">Supercars</a>
+                <a href="#" onclick="filterCars('suv')" class="block py-2 px-4 text-sm themed-text-secondary hover:bg-indigo-500 hover:text-white rounded-md">SUVs</a>
+                <a href="#" onclick="filterCars('ev')" class="block py-2 px-4 text-sm themed-text-secondary hover:bg-indigo-500 hover:text-white rounded-md">EVs</a>
+                <a href="#contact" class="block py-2 px-4 text-sm themed-text-secondary hover:bg-indigo-500 hover:text-white rounded-md">Contact</a>
+            </div>
+        </nav>
+    </header>
+
+    <main id="home" class="container mx-auto px-4 lg:px-8 py-12">
+        <section class="text-center mb-16">
+            <h1 id="typing-hero" class="text-4xl md:text-6xl font-bold themed-text-primary mb-4 min-h-[48px] md:min-h-[72px]"></h1>
+            <p class="text-lg themed-text-muted max-w-3xl mx-auto">Explore our curated collection of the world's most exceptional vehicles. From raw power to sustainable luxury, find the perfect machine that defines you.</p>
+        </section>
+
+        <section id="car-listings">
+            <div id="car-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            </div>
+        </section>
+
+        <section id="contact" class="mt-24 themed-bg-secondary p-8 rounded-xl themed-shadow">
+            <h2 class="text-3xl font-bold text-center themed-text-primary mb-2">Get in Touch</h2>
+            <p class="text-center themed-text-muted mb-8">Have a question? We'd love to hear from you.</p>
+            <form class="max-w-xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="text" placeholder="Your Name" class="w-full p-3 themed-bg-muted themed-border themed-text-primary rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    <input type="email" placeholder="Your Email" class="w-full p-3 themed-bg-muted themed-border themed-text-primary rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                </div>
+                <textarea placeholder="Your Message" rows="5" class="w-full mt-6 p-3 themed-bg-muted themed-border themed-text-primary rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"></textarea>
+                <div class="text-center mt-6">
+                    <button type="submit" class="bg-indigo-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 shadow-lg">Send Message</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-4 lg:px-8 py-8 text-center">
+            <p>&copy; 2025 Auto Vision. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+
+    <div id="3d-modal" class="modal-hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 modal-backdrop p-4">
+        <div id="modal-content" class="modal-content themed-bg-secondary rounded-2xl shadow-2xl w-full max-w-4xl h-4/5 relative flex flex-col">
+            <div class="p-4 themed-border border-b flex justify-between items-center">
+                <h3 id="modal-title" class="text-xl font-bold themed-text-primary">3D Model Viewer</h3>
+                <button id="close-modal-btn" class="themed-text-muted hover:themed-text-primary">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="3d-viewer" class="flex-grow w-full h-full relative">
+                <div id="loader-3d" class="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-10">
+                    <div class="loader"></div>
+                </div>
+            </div>
+            <div class="p-4 themed-bg-muted text-center rounded-b-2xl">
+                 <p class="text-sm themed-text-muted">Drag to rotate | Scroll to zoom</p>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- DATA ---
+        const cars = [
+            {
+                name: 'McLaren F1',
+                category: 'supercar',
+                description: 'An automotive icon and a legendary hypercar that set a new standard for speed.',
+                image: 'https://placehold.co/600x400/ff8800/ffffff?text=McLaren+F1',
+                specs: { 'Top Speed': '240 mph', '0-60 mph': '3.2s' },
+            },
+            {
+                name: 'Tesla Model S',
+                category: 'ev',
+                description: 'The benchmark for electric performance, combining range, speed, and advanced tech.',
+                image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSf-7NsRp57iyji4MFVIBXuRq_6XD046VZ2sSzXVSvFLnWUzHuKvVkzxEEw&s=10',
+                specs: { 'Range': '396 mi', '0-60 mph': '1.99s' },
+            },
+            {
+                name: 'Mahindra Thar',
+                category: 'suv',
+                description: 'The ultimate off-roader, built to conquer any terrain with its rugged and iconic design.',
+                image: 'https://placehold.co/600x400/000000/ffffff?text=Mahindra+Thar',
+                specs: { 'Engine': '2.2L Diesel', '4x4': 'Standard' },
+                // =========================================================================
+                // THIS IS THE LINE TO EDIT:
+                // After editing your 3D model, upload the new .glb file and paste its
+                // public URL here to replace the old one.
+                // =========================================================================
+                modelPath: 'https://cdn.glitch.global/f83a927a-85d1-4f9b-986c-0322b2721869/thar_4x4.glb?v=1727549216223' 
+            },
+            {
+                name: 'Inferno Spyder',
+                category: 'supercar',
+                description: 'Feel the wind and the roar of the engine in this open-top beast.',
+                image: 'https://placehold.co/600x400/f59e0b/ffffff?text=Inferno+Spyder',
+                specs: { 'Top Speed': '210 mph', '0-60 mph': '3.0s' },
+            },
+            {
+                name: 'Terra Cruiser',
+                category: 'suv',
+                description: 'The definitive family adventure vehicle, built for safety and comfort.',
+                image: 'https://placehold.co/600x400/374151/ffffff?text=Terra+Cruiser',
+                specs: { 'Towing': '7,500 lbs', 'Seats': '8' },
+            },
+            {
+                name: 'Nimbus EV',
+                category: 'ev',
+                description: 'Elegant, efficient, and packed with technology for the modern driver.',
+                image: 'https://placehold.co/600x400/0e7490/ffffff?text=Nimbus+EV',
+                specs: { 'Range': '350 mi', '0-60 mph': '4.1s' },
+            }
+        ];
+
+        // --- DOM ELEMENTS ---
+        const carGrid = document.getElementById('car-grid');
+        const modal = document.getElementById('3d-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const viewerContainer = document.getElementById('3d-viewer');
+        const loader3D = document.getElementById('loader-3d');
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        // --- RENDER LOGIC ---
+        function createCarCard(car) {
+            const specsHTML = Object.entries(car.specs).map(([key, value]) => `
+                <div class="flex flex-col">
+                    <span class="text-xs themed-text-muted">${key}</span>
+                    <span class="font-semibold themed-text-primary">${value}</span>
+                </div>
+            `).join('');
+
+            const card = document.createElement('div');
+            card.className = 'car-card themed-bg-secondary themed-shadow rounded-xl overflow-hidden cursor-pointer';
+            card.innerHTML = `
+                <img src="${car.image}" alt="${car.name}" class="w-full h-56 object-cover">
+                <div class="p-6">
+                    <h3 class="text-xl font-bold themed-text-primary mb-2">${car.name}</h3>
+                    <p class="themed-text-secondary mb-4">${car.description}</p>
+                    <div class="flex justify-around items-center themed-border border-t pt-4">
+                        ${specsHTML}
+                    </div>
+                </div>
+            `;
+            card.addEventListener('click', () => openModal(car));
+            return card;
+        }
+
+        function renderCars(filter = 'all') {
+            carGrid.innerHTML = '';
+            const filteredCars = (filter === 'all') ? cars : cars.filter(c => c.category === filter);
+            filteredCars.forEach(car => {
+                carGrid.appendChild(createCarCard(car));
+            });
+        }
+
+        window.filterCars = function(category) {
+            renderCars(category);
+        }
+
+        // --- 3D MODAL LOGIC ---
+        let scene, camera, renderer, currentModel, controls;
+        const gltfLoader = new THREE.GLTFLoader();
+        const rgbeLoader = new THREE.RGBELoader();
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(50, viewerContainer.clientWidth / viewerContainer.clientHeight, 0.1, 1000);
+            camera.position.set(0, 2, 8);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(viewerContainer.clientWidth, viewerContainer.clientHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            viewerContainer.appendChild(renderer.domElement);
+            
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+
+            // --- ENHANCED & ROBUST LIGHTING SETUP ---
+            const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 1.5);
+            scene.add(hemisphereLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight.position.set(5, 10, 7.5);
+            scene.add(directionalLight);
+
+            rgbeLoader.load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/venice_sunset_1k.hdr', (texture) => {
+                texture.mapping = THREE.EquirectangularReflectionMapping;
+                scene.environment = texture;
+            });
+
+            animate();
+        }
+
+        function createPlaceholderCar() {
+            const group = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.5, roughness: 0.5 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 2), bodyMat);
+            group.add(body);
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1.8), bodyMat);
+            cabin.position.set(-0.25, 1.1, 0);
+            group.add(cabin);
+            return group;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function onWindowResize() {
+            if (!renderer || !camera) return;
+            camera.aspect = viewerContainer.clientWidth / viewerContainer.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(viewerContainer.clientWidth, viewerContainer.clientHeight);
+        }
+        
+        function openModal(car) {
+            modalTitle.textContent = `${car.name} - 3D View`;
+            
+            if (currentModel) scene.remove(currentModel);
+            
+            modal.classList.remove('modal-hidden');
+            loader3D.style.display = 'flex';
+            onWindowResize();
+            
+            if (car.modelPath) {
+                gltfLoader.load(car.modelPath, (gltf) => {
+                    currentModel = gltf.scene;
+                    
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 4.0 / maxDim;
+                    
+                    currentModel.scale.multiplyScalar(scale);
+                    currentModel.position.sub(center.multiplyScalar(scale));
+                    
+                    scene.add(currentModel);
+                    loader3D.style.display = 'none';
+                }, undefined, (error) => {
+                    console.error('An error happened while loading the model:', error);
+                    currentModel = createPlaceholderCar();
+                    scene.add(currentModel);
+                    loader3D.style.display = 'none';
+                });
+            } else {
+                currentModel = createPlaceholderCar();
+                scene.add(currentModel);
+                loader3D.style.display = 'none';
+            }
+        }
+
+        function closeModal() {
+            modal.classList.add('modal-hidden');
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel = null;
+            }
+        }
+        
+        closeModalBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        
+        mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+
+        // --- THEME SWITCHER LOGIC ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeToggleBtnMobile = document.getElementById('theme-toggle-mobile');
+        const lightIcons = [document.getElementById('theme-icon-light'), document.getElementById('theme-icon-light-mobile')];
+        const darkIcons = [document.getElementById('theme-icon-dark'), document.getElementById('theme-icon-dark-mobile')];
+        
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.classList.add('dark');
+                lightIcons.forEach(icon => icon.classList.add('hidden'));
+                darkIcons.forEach(icon => icon.classList.remove('hidden'));
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.classList.remove('dark');
+                lightIcons.forEach(icon => icon.classList.remove('hidden'));
+                darkIcons.forEach(icon => icon.classList.add('hidden'));
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        }
+
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
+        
+        themeToggleBtn.addEventListener('click', toggleTheme);
+        themeToggleBtnMobile.addEventListener('click', toggleTheme);
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initThreeJS();
+            renderCars();
+            
+            const heroTextElement = document.getElementById('typing-hero');
+            if (heroTextElement) {
+                const textToType = "Discover Your Dream Car";
+                let charIndex = 0;
+                const typingSpeed = 100;
+
+                function typeWriter() {
+                    const cursorSpan = `<span class="ml-1 themed-text-primary cursor-blink">|</span>`;
+                    if (charIndex < textToType.length) {
+                        heroTextElement.innerHTML = textToType.substring(0, charIndex + 1) + cursorSpan;
+                        charIndex++;
+                        setTimeout(typeWriter, typingSpeed);
+                    } else {
+                        heroTextElement.innerHTML = textToType + `<span class="ml-1 themed-text-primary">|</span>`;
+                    }
+                }
+                typeWriter();
+            }
+            
+            window.addEventListener('resize', onWindowResize);
+        });
+    </script>
+</body>
+
+</html>
+
+
